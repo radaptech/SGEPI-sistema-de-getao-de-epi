@@ -28,7 +28,7 @@ prioriza contexto de negócio e pegadinhas que o Swagger não mostra.
 
 | Método | Path | Auth | Request | Response (sucesso) | Descrição | Erros notáveis |
 |---|---|---|---|---|---|---|
-| POST | `/api/login` | Tenant-only (rate limit: 5 burst, 1/12s por IP) | `model.LoginInput` (email, senha) | `{usuario: {id, nome, email, role}}` + cookie HttpOnly `token` | Autentica e seta cookie JWT | 400 dados inválidos; 401 email/senha incorretos; 500 |
+| POST | `/api/login` | Tenant-only (rate limit: 5 burst, 1/12s por IP) | `model.LoginInput` (email, senha) | `{usuario: {id, nome, email, role}}` + cookie HttpOnly `sessao` | Cria a sessão e seta o cookie | 400 dados inválidos; 401 email/senha incorretos; 500 |
 | POST | `/api/logout` | Tenant-only | — | `{message}` | Limpa o cookie `token` | — |
 | POST | `/api/esqueci-minha-senha` | Tenant-only (rate limit: 3 burst, 1/min por IP) | `model.RecuperaLogin` | 200 vazio | Dispara e-mail de recuperação de senha (Resend) | 400; 500 |
 | POST | `/api/redefinir-senha` | Tenant-only | `model.RedefinirSenha` | `{mensagem}` | Redefine senha via token do link de e-mail | 400 link inválido/expirado/empresa errada; 500 |

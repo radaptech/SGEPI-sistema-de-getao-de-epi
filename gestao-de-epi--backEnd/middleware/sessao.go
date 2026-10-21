@@ -1,0 +1,43 @@
+package middleware
+
+import (
+	"errors"
+	"net/http"
+
+	"github.com/davi-fernandesx/sistema-de-gestao-de-epi/auth"
+	"github.com/davi-fernandesx/sistema-de-gestao-de-epi/database/repository"
+	"github.com/gin-gonic/gin"
+	"github.com/jackc/pgx/v5"
+	"github.com/radaptech/ginmw"
+)
+
+// Sessao autentica pelo cookie de sessão e popula as mesmas chaves que o
+// ginmw.JWT populava, então ginmw.UserID/TenantID/Require e o "user_nome"
+// dos controllers continuam funcionando sem mudança.
+func Sessao(q *repository.Queries) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		token, err := c.Cookie(auth.CookieSessao)
+		if err != nil || token == "" {
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Acesso negado, sessão ausente"})
+			return
+		}
+
+		usuario, err := q.BuscarSessao(c, auth.HashTokenSessao(token))
+		if err != nil {
+			if errors.Is(err, pgx.ErrNoRows) {
+				c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Sessão inválida ou expirada"})
+				return
+			}
+			c.Error(err)
+			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "Erro interno ao validar sessão"})
+			return
+		}
+
+		c.Set(ginmw.UserIDKey, int64(usuario.ID))
+		c.Set(ginmw.TenantIDKey, int64(usuario.TenantID.Int32))
+		c.Set(ginmw.RoleKey, usuario.Role.String)
+		c.Set("user_nome", usuario.Nome)
+
+		c.Next()
+	}
+}

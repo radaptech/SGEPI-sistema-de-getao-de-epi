@@ -156,3 +156,26 @@ func (u *UsuarioRepository) EditarStatusUsuario(ctx context.Context, arg EditarS
 
 	return nil
 }
+
+func (u *UsuarioRepository) CriarSessao(ctx context.Context, arg CriarSessaoParams) error {
+
+	// aproveita o login pra limpar as sessões vencidas
+	if err := u.q.DeletarSessoesExpiradas(ctx); err != nil {
+		return helper.TraduzErroPostgres(err)
+	}
+
+	if err := u.q.CriarSessao(ctx, arg); err != nil {
+		return helper.TraduzErroPostgres(err)
+	}
+
+	return nil
+}
+
+func (u *UsuarioRepository) DeletarSessao(ctx context.Context, tokenHash string) error {
+
+	if err := u.q.DeletarSessao(ctx, tokenHash); err != nil {
+		return helper.TraduzErroPostgres(err)
+	}
+
+	return nil
+}

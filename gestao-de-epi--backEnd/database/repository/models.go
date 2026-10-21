@@ -179,6 +179,13 @@ type Plano struct {
 	CriadoEm           pgtype.Timestamp
 }
 
+type Sesso struct {
+	TokenHash string
+	UsuarioID int32
+	ExpiraEm  pgtype.Timestamptz
+	CriadoEm  pgtype.Timestamptz
+}
+
 type Tamanho struct {
 	ID         int32
 	TenantID   int32
