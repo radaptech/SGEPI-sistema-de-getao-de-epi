@@ -83,7 +83,7 @@ HTTP → middleware → controller/ → internal/service/ → database/repositor
 | Migrações | `database/migrate/` | golang-migrate, numeradas `NNNNNN_nome.up.sql` / `.down.sql` |
 | Models/DTOs | `internal/model/` | Structs de entrada (`...Inserir`, binding tags) e saída (`...Dto`) |
 | Helpers | `internal/helper/` | Erros de domínio, PDF (maroto), upload Supabase, tokens de auditoria, validador de CNPJ |
-| Auth | `auth/` | Hash argon2id + geração de JWT |
+| Auth | `auth/` | Hash argon2id + token de sessão |
 | Config | `configs/` | Conexão, variáveis de ambiente, tipo `DataBr` |
 
 ### Distinção importante: `*_repository.go` vs `*.sql.go`
@@ -115,7 +115,7 @@ Como o tenant chega até a query:
 `tenant_id = $N`.** Não existe RLS no banco — o isolamento é feito 100% na aplicação. Um `WHERE`
 sem tenant vaza dados entre empresas.
 
-O `userId` logado sai do JWT e é lido com `middleware.GetUserID(c)` (usado para auditoria:
+O `userId` logado sai da sessão e é lido com `ginmw.UserID(c)` (usado para auditoria:
 `id_usuario_criacao`, `id_usuario_cancelamento`, etc.).
 
 ---
@@ -123,12 +123,13 @@ O `userId` logado sai do JWT e é lido com `middleware.GetUserID(c)` (usado para
 ## Autenticação e autorização
 
 - **Hash de senha**: argon2id (`auth.HashPassword` / `auth.HashCompare`).
-- **JWT** (`auth.GerarJWT`): HS256, `JWT_SECRET` do ambiente, expira em 24 h. Claims:
-  `sub` (id do usuário), `nome`, `role`, `tenantId`, `exp`, `iat`.
-- **Transporte do token**: `middleware.AutenticacaoJWT` procura primeiro o **cookie `token`**
-  (HttpOnly, `Secure`, `SameSite=None`, setado no login) e só depois cai para o header
-  `Authorization: Bearer <token>`.
-- O middleware popula no contexto: `userId`, `user_role`, `user_TenantId`, `user_nome`.
+- **Sessão no servidor** (sem JWT): o login gera um token aleatório (`auth.GerarTokenSessao`) e
+  grava só o **SHA-256** dele na tabela `sessoes` (`usuario_id`, `expira_em` = 24 h). O token vai
+  no **cookie `sessao`** (HttpOnly, `Secure`, `SameSite=None`). Não existe header `Authorization`.
+- `middleware.Sessao` busca a sessão a cada request (join com `usuarios`, exige `ativo = TRUE` e
+  `expira_em > now()`) e popula as chaves do `ginmw` (`ginmw.UserID`/`TenantID`/`Role`, usadas por
+  `ginmw.Require`) + `user_nome`. Desativar o usuário derruba a sessão na hora.
+- `POST /api/logout` apaga a linha da sessão. Sessões vencidas são limpas a cada login.
 
 ### Roles
 
@@ -141,10 +142,10 @@ O `userId` logado sai do JWT e é lido com `middleware.GetUserID(c)` (usado para
 ### Os três grupos de rota
 
 ```go
-/api/painel   → AutenticacaoJWT + VerificaSuperAdmin       // cadastro de empresas
-/api/master   → AutenticacaoJWT + VerificaSuperAdmin       // dashboard global, planos, usuários
+/api/painel   → Sessao + Require("super_admin")       // cadastro de empresas
+/api/master   → Sessao + Require("super_admin")       // dashboard global, planos, usuários
 /api          → TenantMiddleware                            // login, logout, recuperação de senha
-/api          → + AutenticacaoJWT                           // operação do dia a dia
+/api          → + Sessao                                    // operação do dia a dia
 /api/gerencial→ + VerificaRole("admin")                     // escrita/cadastros
 ```
 
@@ -361,17 +362,10 @@ os metadados globais estão em `main.go`. Rode `swag init` após alterar rotas �
 
 Copie `.env-example` para `.env` (o `.env` está no `.gitignore`).
 
-> O `JWT_SECRET` vem **preenchido de propósito** no `.env-example`: é uma chave só de
-> desenvolvimento, para não ter que gerar outra a cada máquina. Produção usa um valor diferente,
-> configurado no Railway. Scanners de segredo (Gitleaks/Semgrep) marcam essa linha como
-> `generic-api-key` — é falso positivo conhecido, não rotacione achando que vazou algo de produção.
-
 | Variável | Uso |
 |---|---|
 | `DB_SERVER`, `DB_PORT`, `DB_USER`, `DB_PASSWORD`, `DATABASE` | Conexão pgxpool |
 | `DB_SSLMODE` | Default `disable` se ausente |
-| `JWT_SECRET` | **Obrigatória** — `AutenticacaoJWT` dá `panic` no boot se estiver vazia |
-| `JWT_EXPIRATION` | Presente no `.env`, mas **não é lida**: a expiração está fixa em 24 h no código |
 | `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_BUCKET` | Upload das assinaturas |
 | `RESEND_API_KEY` | Envio de e-mail de recuperação de senha (Resend) |
 | `URL_FRONTEND_FORMATO` | Template do link de redefinição, ex.: `http://%s:3000` (`%s` = subdomínio) |

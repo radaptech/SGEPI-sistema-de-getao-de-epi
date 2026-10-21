@@ -8,7 +8,6 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/s3 v1.107.3
 	github.com/disintegration/imaging v1.6.2
 	github.com/gin-gonic/gin v1.12.0
-	github.com/golang-jwt/jwt/v5 v5.3.1
 	github.com/johnfercher/maroto/v2 v2.3.3
 	github.com/joho/godotenv v1.5.1
 	github.com/radaptech/ginmw v0.1.1
@@ -70,6 +69,7 @@ require (
 	github.com/go-openapi/swag/typeutils v0.25.4 // indirect
 	github.com/go-openapi/swag/yamlutils v0.25.4 // indirect
 	github.com/goccy/go-yaml v1.19.2 // indirect
+	github.com/golang-jwt/jwt/v5 v5.3.1 // indirect
 	github.com/gosimple/unidecode v1.0.1 // indirect
 	github.com/hhrutter/lzw v1.0.0 // indirect
 	github.com/hhrutter/tiff v1.0.1 // indirect
