@@ -1,0 +1,33 @@
+name: Front-end
+
+# Monorepo: só roda quando o front (ou este arquivo) muda.
+on:
+  push:
+    branches: [main, dev, homologacao]
+    paths: ['SGEPI-FRONT-END/**', '.github/workflows/front-end.yml']
+  pull_request:
+    paths: ['SGEPI-FRONT-END/**', '.github/workflows/front-end.yml']
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: SGEPI-FRONT-END
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 18
+          cache: npm
+          cache-dependency-path: SGEPI-FRONT-END/package-lock.json
+
+      - run: npm ci
+
+      - name: build
+        # ponytail: CRA com CI=true trata warning de lint como erro; tirar quando zerar os warnings
+        env:
+          CI: false
+        run: npm run build

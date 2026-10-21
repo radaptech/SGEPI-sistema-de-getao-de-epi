@@ -1,0 +1,27 @@
+name: Back-end
+
+# Monorepo: só roda quando o back (ou este arquivo) muda.
+on:
+  push:
+    branches: [main, dev, homologacao]
+    paths: ['gestao-de-epi--backEnd/**', '.github/workflows/back-end.yml']
+  pull_request:
+    paths: ['gestao-de-epi--backEnd/**', '.github/workflows/back-end.yml']
+  workflow_dispatch:
+
+jobs:
+  testes-Unitarios:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: gestao-de-epi--backEnd
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: gestao-de-epi--backEnd/go.mod
+          cache-dependency-path: gestao-de-epi--backEnd/go.sum
+
+      - name: Rodando os testes Unitarios
+        run: go test -v ./... -p 1
