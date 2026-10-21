@@ -1,0 +1,26 @@
+name: Go - CI
+
+
+## apenas os testes unitarios
+on:
+  push:
+    branches: [ "main", "dev", "homologacao" ]
+  pull_request:
+    branches: [ "main", "dev", "homologacao" ]
+
+jobs:
+
+    testes-Unitarios:
+      runs-on: ubuntu-latest
+      steps:
+      - name: checkout do codigo
+        uses: actions/checkout@v4
+
+      - name: configurações golang
+        uses: actions/setup-go@v4
+        with:
+          go-version: '1.26'
+
+      - name: Rodando os testes Unitarios
+
+        run: go test -v ./... -p 1 
