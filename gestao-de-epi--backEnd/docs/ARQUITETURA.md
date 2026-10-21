@@ -156,8 +156,6 @@ Servida em `/swagger/*any` (rota pública, sem autenticação).
 |---|---|
 | `DB_SERVER`, `DB_PORT`, `DB_USER`, `DB_PASSWORD`, `DATABASE` | Conexão `pgxpool` |
 | `DB_SSLMODE` | Default `disable` se ausente |
-| `JWT_SECRET` | **Obrigatória** — a API dá `panic` no boot se estiver vazia |
-| `JWT_EXPIRATION` | Presente no `.env`, mas não é lida; expiração fixa em 24h no código |
 | `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_BUCKET` | Upload das imagens de assinatura |
 | `RESEND_API_KEY` | Envio de e-mail de recuperação de senha |
 | `URL_FRONTEND_FORMATO` | Template do link de redefinição de senha, ex.: `http://%s:3000` |

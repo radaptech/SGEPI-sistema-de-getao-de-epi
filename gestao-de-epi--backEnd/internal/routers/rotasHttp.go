@@ -3,13 +3,13 @@ package routers
 import (
 	"context"
 	"net/http"
-	"os"
 	"time"
 
 	"github.com/davi-fernandesx/sistema-de-gestao-de-epi/controller"
 	"github.com/davi-fernandesx/sistema-de-gestao-de-epi/database/repository"
 	_ "github.com/davi-fernandesx/sistema-de-gestao-de-epi/docs"
 	"github.com/davi-fernandesx/sistema-de-gestao-de-epi/internal/service"
+	"github.com/davi-fernandesx/sistema-de-gestao-de-epi/middleware"
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -95,22 +95,14 @@ func ConfigurarRotas(r *gin.Engine, c *Container, db *pgxpool.Pool) {
 	queries := repository.New(db)
 
 	// Montados uma vez só, reaproveitados em todo Use() abaixo.
-	// WithRoleClaim("role"): claim de perfil no token do SGE se chama
-	// "role", não "perfil" (default da lib, usado pelo sistema-OS).
-	// WithExtraClaim("nome", "user_nome"): claim que os controllers já
-	// liam direto do contexto (ctx.GetString("user_nome")) pra gravar
-	// quem processou uma entrega/devolução -- mantém a mesma chave.
-	authJWT := ginmw.JWT([]byte(os.Getenv("JWT_SECRET")),
-		ginmw.WithRoleClaim("role"),
-		ginmw.WithExtraClaim("nome", "user_nome"),
-	)
+	authSessao := middleware.Sessao(queries)
 	tenant := ginmw.Tenant(func(ctx context.Context, subdominio string) (int64, error) {
 		empresa, err := queries.GetTenantBySubdomain(ctx, subdominio)
 		return int64(empresa.ID), err
 	}, pgx.ErrNoRows)
 
 	// --- GRUPO 1: Rotas Públicas (Aberta) ---
-	// Qualquer um acessa sem token
+	// Qualquer um acessa sem sessão
 
 	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 	r.GET("/", func(c *gin.Context) {
@@ -128,7 +120,7 @@ func ConfigurarRotas(r *gin.Engine, c *Container, db *pgxpool.Pool) {
 	})
 	api := r.Group("/api")
 	painel := r.Group("/api/painel")
-	painel.Use(authJWT, ginmw.Require("super_admin"))
+	painel.Use(authSessao, ginmw.Require("super_admin"))
 	{
 
 		//empresas
@@ -136,7 +128,7 @@ func ConfigurarRotas(r *gin.Engine, c *Container, db *pgxpool.Pool) {
 	}
 
 	master := r.Group("/api/master")
-	master.Use(authJWT, ginmw.Require("super_admin"))
+	master.Use(authSessao, ginmw.Require("super_admin"))
 	{
 		master.GET("/dashboard/resumo", c.Empresas.ResumoDashboard())
 		master.GET("/dashboard/empresas-recentes", c.Empresas.EmpresaRecentes())
@@ -167,8 +159,8 @@ func ConfigurarRotas(r *gin.Engine, c *Container, db *pgxpool.Pool) {
 	}
 
 	// --- GRUPO 3: Rotas Protegidas (SaaS) ---
-	// Precisa do Token JWT para passar
-	api.Use(authJWT)
+	// Precisa de sessão válida (cookie) para passar
+	api.Use(authSessao)
 	{
 
 		//colaborador e adm tem acesso a essas rotas

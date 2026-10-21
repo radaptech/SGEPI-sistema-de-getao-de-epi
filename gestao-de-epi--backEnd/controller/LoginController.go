@@ -7,6 +7,7 @@ import (
 
 	"net/http"
 
+	"github.com/davi-fernandesx/sistema-de-gestao-de-epi/auth"
 	"github.com/davi-fernandesx/sistema-de-gestao-de-epi/database/repository"
 	"github.com/davi-fernandesx/sistema-de-gestao-de-epi/internal/helper"
 	"github.com/davi-fernandesx/sistema-de-gestao-de-epi/internal/model"
@@ -25,6 +26,7 @@ type LoginService interface {
 	MostrarUsuariosPainel(ctx context.Context) ([]model.UsuarioResponsePainel, error)
 	EditarUsuario(ctx context.Context, id int32, model model.EditarUsuarioRequest) error
 	EditarStatusUsuario(ctx context.Context, id int32, model model.AlterarStatusRequest) error
+	Logout(ctx context.Context, token string) error
 }
 
 type LoginController struct {
@@ -114,7 +116,7 @@ func (l *LoginController) Login() gin.HandlerFunc {
 			return
 		}
 
-		// Único endpoint em que o tenant vem do header: ainda não existe token.
+		// Único endpoint em que o tenant vem do header: ainda não existe sessão.
 		tenantID64, ok := ginmw.TenantIDFromHeader(c)
 		tenantID := int32(tenantID64)
 		if !ok {
@@ -155,12 +157,12 @@ func (l *LoginController) Login() gin.HandlerFunc {
 
 		c.SetSameSite(http.SameSiteNoneMode)
 		c.SetCookie(
-			"token",
+			auth.CookieSessao,
 			token,
-			86400,
+			int(auth.DuracaoSessao.Seconds()),
 			"/",
 			"",
-			true, // botar para true depois
+			true,
 			true,
 		)
 
@@ -179,13 +181,23 @@ func (l *LoginController) Logout() gin.HandlerFunc {
 
 	return func(ctx *gin.Context) {
 
+		if token, err := ctx.Cookie(auth.CookieSessao); err == nil && token != "" {
+			if err := l.service.Logout(ctx, token); err != nil {
+				ctx.Error(err)
+				ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Erro interno ao realizar logout"})
+				return
+			}
+		}
+
+		// mesmos atributos do login, senão o navegador não sobrescreve o cookie
+		ctx.SetSameSite(http.SameSiteNoneMode)
 		ctx.SetCookie(
-			"token",
+			auth.CookieSessao,
 			"",
 			-1,
 			"/",
 			"",
-			false,
+			true,
 			true,
 		)
 
@@ -203,7 +215,7 @@ func (l *LoginController) VerPerfil() gin.HandlerFunc {
 		if !existe {
 			c.JSON(http.StatusUnauthorized, gin.H{
 
-				"error": "Token inválido ou sem id",
+				"error": "Sessão inválida ou sem id",
 			})
 
 			return

@@ -31,6 +31,8 @@ type UsuarioRepository interface {
 	MostrarUsuariosPainel(ctx context.Context) ([]repository.MostrarUsuariosPainelRow, error)
 	EditarUsuario(ctx context.Context, args repository.EditarUsuarioParams) error
 	EditarStatusUsuario(ctx context.Context, arg repository.EditarStatusUsuarioParams) error
+	CriarSessao(ctx context.Context, arg repository.CriarSessaoParams) error
+	DeletarSessao(ctx context.Context, tokenHash string) error
 }
 
 type UsuarioService struct {
@@ -135,13 +137,23 @@ func (u *UsuarioService) FazerLogin(ctx context.Context, email, senha string, te
 		return "", repository.BuscarUsuarioPorEmailRow{}, errors.New("email ou senha inválidos")
 	}
 
-	//gerando o token
-	token, err := auth.GerarJWT(usuario.ID, usuario.Role.String, usuario.Nome, tenantId)
+	//criando a sessão
+	token, hash := auth.GerarTokenSessao()
+	err = u.repo.CriarSessao(ctx, repository.CriarSessaoParams{
+		TokenHash: hash,
+		UsuarioID: usuario.ID,
+		ExpiraEm:  pgtype.Timestamptz{Time: time.Now().Add(auth.DuracaoSessao), Valid: true},
+	})
 	if err != nil {
-		return "", repository.BuscarUsuarioPorEmailRow{}, errors.New("erro ao gerar token de acesso")
+		return "", repository.BuscarUsuarioPorEmailRow{}, fmt.Errorf("erro ao criar sessão: %w", err)
 	}
 
 	return token, usuario, nil
+}
+
+func (u *UsuarioService) Logout(ctx context.Context, token string) error {
+
+	return u.repo.DeletarSessao(ctx, auth.HashTokenSessao(token))
 }
 
 func (u *UsuarioService) BuscarPorId(ctx context.Context, id uint, tenantId int32) (model.RecuperaUser, error) {
