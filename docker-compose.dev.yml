@@ -84,6 +84,8 @@ services:
       - ./gestao-de-epi--backEnd/.env
     volumes:
       - ./gestao-de-epi--backEnd:/app
+      # cache de compilação do Go: sem ele, toda subida recompila as dependências do zero
+      - go_build_cache:/root/.cache/go-build
     environment:
       - DB_HOST=postgres
       - DB_PORT=5432
@@ -128,3 +130,4 @@ services:
 
 volumes:
   postgres_data:
+  go_build_cache:
