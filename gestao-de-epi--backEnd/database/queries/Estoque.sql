@@ -81,3 +81,10 @@ GROUP BY e.id_epi, p.nome
 LIMIT $1 OFFSET $2;
 
 
+-- name: ListarEpisCaVencido :many
+-- Entregar EPI com CA vencido na data da entrega gera autuação (NR-6).
+SELECT id, nome, CA, validade_CA
+FROM epi
+WHERE tenant_id = $1
+  AND id = ANY(sqlc.arg(ids)::int[])
+  AND validade_CA < sqlc.arg(data_entrega)::date;

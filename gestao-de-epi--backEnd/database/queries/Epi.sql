@@ -1,6 +1,6 @@
 -- name: AddEpi :one
-INSERT INTO epi (tenant_id, nome, fabricante, CA, descricao, validade_CA, IdTipoProtecao, alerta_minimo) 
-VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+INSERT INTO epi (tenant_id, nome, fabricante, CA, descricao, validade_CA, IdTipoProtecao, alerta_minimo, vida_util_dias) 
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NULLIF(sqlc.arg('vida_util_dias')::int, 0))
 RETURNING id;
 
 -- name: AddEpiTamanho :exec
@@ -12,7 +12,7 @@ DO UPDATE SET ativo = TRUE, deletado_em = NULL;
 -- name: BuscarEpi :one
 SELECT 
     e.id, e.nome, e.fabricante, e.CA, e.descricao,
-    e.validade_CA, e.alerta_minimo, e.IdTipoProtecao, 
+    e.validade_CA, e.alerta_minimo, e.IdTipoProtecao, e.vida_util_dias,
     tp.nome as tipo_protecao_nome
 FROM epi e
 INNER JOIN tipo_protecao tp ON e.IdTipoProtecao = tp.id
@@ -31,7 +31,7 @@ WHERE te.IdEpi = $1
 -- name: BuscarTodosEpisPaginado :many
 SELECT 
     e.id, e.nome, e.fabricante, e.CA, e.descricao,
-    e.validade_CA, e.alerta_minimo, e.IdTipoProtecao, 
+    e.validade_CA, e.alerta_minimo, e.IdTipoProtecao, e.vida_util_dias,
     tp.nome as tipo_protecao_nome,
     COUNT(*) OVER() as total_geral
 FROM epi e
@@ -76,14 +76,17 @@ SET
     descricao = COALESCE(sqlc.narg('descricao'), descricao),
     validade_CA = COALESCE(sqlc.narg('validade_ca'), validade_CA),
     IdTipoProtecao = COALESCE(sqlc.narg('id_tipo_protecao')::int, IdTipoProtecao),
-    alerta_minimo = COALESCE(sqlc.narg('alerta_minimo')::int, alerta_minimo)  
+    alerta_minimo = COALESCE(sqlc.narg('alerta_minimo')::int, alerta_minimo),
+    -- 0 desliga a troca periódica (NULL); não enviado mantém o valor atual
+    vida_util_dias = CASE WHEN sqlc.narg('vida_util_dias')::int IS NULL THEN vida_util_dias
+                          ELSE NULLIF(sqlc.narg('vida_util_dias')::int, 0) END
     WHERE id = sqlc.arg('id') 
   AND tenant_id = sqlc.arg('tenant_id') -- SEGURANÇA: Obrigatório para update
   AND ativo = TRUE;
 
 
 -- name: BuscaEpiDashbord :many
-SELECT id, nome, alerta_minimo
+SELECT id, nome, alerta_minimo, CA, validade_CA
 FROM epi
 WHERE tenant_id = $1 -- SEGURANÇA
   AND ativo = TRUE

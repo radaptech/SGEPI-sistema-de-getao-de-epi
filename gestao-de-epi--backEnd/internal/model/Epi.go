@@ -14,6 +14,7 @@ type EpiInserir struct {
 	IdTamanho      []int32        `json:"id_tamanho" binding:"required,min=1"` // Lista de tamanhos permitidos para este EPI
 	IDProtecao     int32          `json:"id_protecao" binding:"required,numeric"`
 	AlertaMinimo   int32          `json:"alerta_minimo" binding:"required,gte=0"`
+	VidaUtilDias   int32          `json:"vida_util_dias" binding:"gte=0"` // 0 = sem troca periódica
 }
 
 // EpiDto é o retorno completo usado na listagem de cadastros
@@ -27,6 +28,7 @@ type EpiDto struct {
 	DataValidadeCa configs.DataBr  `json:"validade_ca"`
 	Protecao       TipoProtecaoDto `json:"protecao"`
 	AlertaMinimo   int32           `json:"alerta_minimo"`
+	VidaUtilDias   int32           `json:"vida_util_dias"` // 0 = sem troca periódica
 }
 
 type EpiDtoEntrega struct {
@@ -62,6 +64,7 @@ type UpdateEpiInput struct {
 	DataValidadeCa *configs.DataBr `json:"validade_ca"`
 	IdProtecao     *int32          `json:"id_protecao"`
 	AlertaMinimo   *int32          `json:"alerta_minimo"`
+	VidaUtilDias   *int32          `json:"vida_util_dias" binding:"omitempty,gte=0"` // 0 desliga
 	Tamanhos       []int32         `json:"tamanhos"` // Se enviado, você deve resetar os tamanhos no banco
 }
 
@@ -79,9 +82,11 @@ type EpiResponse struct {
 
 // EpiDashBord é o resumo para os cards do dashboard
 type EpiDashBord struct {
-	Id           int32  `json:"id"`
-	Nome         string `json:"nome"`
-	AlertaMinimo int32  `json:"alerta_minimo"`
+	Id           int32          `json:"id"`
+	Nome         string         `json:"nome"`
+	AlertaMinimo int32          `json:"alerta_minimo"`
+	CA           string         `json:"ca"`
+	ValidadeCa   configs.DataBr `json:"validade_ca"`
 }
 
 type EpiDtoEstoque struct {

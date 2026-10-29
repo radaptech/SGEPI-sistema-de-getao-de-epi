@@ -38,6 +38,14 @@ type Devolucao struct {
 	Observacao                     pgtype.Text
 }
 
+type DevolucaoLote struct {
+	ID            int32
+	TenantID      int32
+	IDDevolucao   int32
+	IDEntradaItem int32
+	Quantidade    int32
+}
+
 type Empresa struct {
 	ID           int32
 	NomeFantasia string
@@ -112,6 +120,7 @@ type Epi struct {
 	AlertaMinimo   int32
 	Ativo          bool
 	DeletadoEm     pgtype.Timestamp
+	VidaUtilDias   pgtype.Int4
 }
 
 type EpisEntregue struct {

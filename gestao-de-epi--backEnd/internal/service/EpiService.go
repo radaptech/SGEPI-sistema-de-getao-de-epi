@@ -73,6 +73,7 @@ func (e *EpiService) Salvar(ctx context.Context, model model.EpiInserir, tenantI
 		ValidadeCa:     pgtype.Date{Time: model.DataValidadeCa.Time(), Valid: true},
 		Idtipoprotecao: int32(model.IDProtecao),
 		AlertaMinimo:   int32(model.AlertaMinimo),
+		VidaUtilDias:   model.VidaUtilDias,
 		TenantID:       tenantID,
 	})
 	if err != nil {
@@ -176,6 +177,7 @@ func (e *EpiService) ListarEpis(ctx context.Context, f EpiFiltro, tenantId int32
 				Nome: epi.TipoProtecaoNome,
 			},
 			AlertaMinimo: epi.AlertaMinimo,
+			VidaUtilDias: epi.VidaUtilDias.Int32,
 		}
 
 		if e.Tamanhos == nil {
@@ -254,6 +256,8 @@ func (e *EpiService) ListarEpi(ctx context.Context, id int, tenantid int32) (mod
 			ID:   int64(epi.Idtipoprotecao),
 			Nome: epi.TipoProtecaoNome,
 		},
+		AlertaMinimo: epi.AlertaMinimo,
+		VidaUtilDias: epi.VidaUtilDias.Int32,
 	}, nil
 }
 
@@ -360,6 +364,11 @@ func (e *EpiService) AtualizaEpi(ctx context.Context, model model.UpdateEpiInput
 		alertaMin = *model.AlertaMinimo
 	}
 
+	var vidaUtil int32
+	if model.VidaUtilDias != nil {
+		vidaUtil = *model.VidaUtilDias
+	}
+
 	u := repository.UpdateEpiCampoParams{
 		ID:             id,
 		Nome:           toPgText(model.Nome),
@@ -370,6 +379,7 @@ func (e *EpiService) AtualizaEpi(ctx context.Context, model model.UpdateEpiInput
 		IDTipoProtecao: pgtype.Int4{Int32: idProt, Valid: model.IdProtecao != nil},
 		TenantID:       tenantId,
 		AlertaMinimo:   pgtype.Int4{Int32: alertaMin, Valid: model.AlertaMinimo != nil},
+		VidaUtilDias:   pgtype.Int4{Int32: vidaUtil, Valid: model.VidaUtilDias != nil},
 	}
 
 	linhasAfetadas, err := qtx.UpdateEpiCampo(ctx, u)
@@ -428,6 +438,8 @@ func (e *EpiService) ListarEpiDashbord(ctx context.Context, tenantId int32) ([]m
 			Id:           e.ID,
 			Nome:         e.Nome,
 			AlertaMinimo: e.AlertaMinimo,
+			CA:           e.Ca,
+			ValidadeCa:   configs.DataBr(e.ValidadeCa.Time),
 		}
 
 		dto = append(dto, ee)
