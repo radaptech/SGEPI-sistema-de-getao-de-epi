@@ -541,7 +541,6 @@ definitions:
         minimum: 0
         type: integer
     required:
-    - alerta_minimo
     - ca
     - data_validade_ca
     - fabricante
