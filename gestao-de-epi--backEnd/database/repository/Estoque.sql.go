@@ -67,6 +67,53 @@ func (q *Queries) DevolverItemAoEstoque(ctx context.Context, arg DevolverItemAoE
 	return err
 }
 
+const listarEpisCaVencido = `-- name: ListarEpisCaVencido :many
+SELECT id, nome, CA, validade_CA
+FROM epi
+WHERE tenant_id = $1
+  AND id = ANY($2::int[])
+  AND validade_CA < $3::date
+`
+
+type ListarEpisCaVencidoParams struct {
+	TenantID    int32
+	Ids         []int32
+	DataEntrega pgtype.Date
+}
+
+type ListarEpisCaVencidoRow struct {
+	ID         int32
+	Nome       string
+	Ca         string
+	ValidadeCa pgtype.Date
+}
+
+// Entregar EPI com CA vencido na data da entrega gera autuação (NR-6).
+func (q *Queries) ListarEpisCaVencido(ctx context.Context, arg ListarEpisCaVencidoParams) ([]ListarEpisCaVencidoRow, error) {
+	rows, err := q.db.Query(ctx, listarEpisCaVencido, arg.TenantID, arg.Ids, arg.DataEntrega)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListarEpisCaVencidoRow
+	for rows.Next() {
+		var i ListarEpisCaVencidoRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Nome,
+			&i.Ca,
+			&i.ValidadeCa,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listarEstoqueAtual = `-- name: ListarEstoqueAtual :many
 SELECT 
     e.id_epi, 

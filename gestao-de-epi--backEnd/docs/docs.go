@@ -2013,6 +2013,54 @@ const docTemplate = `{
                     }
                 }
             }
+        },
+        "/trocas-pendentes": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "EPIs em posse dos funcionários cuja vida útil já venceu ou vence nos próximos ` + "`" + `dias` + "`" + ` dias (padrão 30)",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Entregas"
+                ],
+                "summary": "Trocas periódicas pendentes",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Janela em dias a partir de hoje (0 a 365)",
+                        "name": "dias",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/model.TrocaPendenteDto"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Parâmetro inválido",
+                        "schema": {
+                            "$ref": "#/definitions/helper.HTTPError"
+                        }
+                    },
+                    "500": {
+                        "description": "Erro interno",
+                        "schema": {
+                            "$ref": "#/definitions/helper.HTTPError"
+                        }
+                    }
+                }
+            }
         }
     },
     "definitions": {
@@ -2643,10 +2691,16 @@ const docTemplate = `{
                 "alerta_minimo": {
                     "type": "integer"
                 },
+                "ca": {
+                    "type": "string"
+                },
                 "id": {
                     "type": "integer"
                 },
                 "nome": {
+                    "type": "string"
+                },
+                "validade_ca": {
                     "type": "string"
                 }
             }
@@ -2684,6 +2738,10 @@ const docTemplate = `{
                 },
                 "validade_ca": {
                     "type": "string"
+                },
+                "vida_util_dias": {
+                    "description": "0 = sem troca periódica",
+                    "type": "integer"
                 }
             }
         },
@@ -2758,7 +2816,6 @@ const docTemplate = `{
         "model.EpiInserir": {
             "type": "object",
             "required": [
-                "alerta_minimo",
                 "ca",
                 "data_validade_ca",
                 "fabricante",
@@ -2799,6 +2856,11 @@ const docTemplate = `{
                 },
                 "nome": {
                     "type": "string"
+                },
+                "vida_util_dias": {
+                    "description": "0 = sem troca periódica",
+                    "type": "integer",
+                    "minimum": 0
                 }
             }
         },
@@ -3082,6 +3144,35 @@ const docTemplate = `{
                 }
             }
         },
+        "model.TrocaPendenteDto": {
+            "type": "object",
+            "properties": {
+                "em_posse": {
+                    "type": "integer"
+                },
+                "epi_id": {
+                    "type": "integer"
+                },
+                "epi_nome": {
+                    "type": "string"
+                },
+                "funcionario_id": {
+                    "type": "integer"
+                },
+                "funcionario_nome": {
+                    "type": "string"
+                },
+                "matricula": {
+                    "type": "integer"
+                },
+                "ultima_entrega": {
+                    "type": "string"
+                },
+                "vence_em": {
+                    "type": "string"
+                }
+            }
+        },
         "model.UpdateEpiInput": {
             "type": "object",
             "properties": {
@@ -3112,6 +3203,11 @@ const docTemplate = `{
                 },
                 "validade_ca": {
                     "type": "string"
+                },
+                "vida_util_dias": {
+                    "description": "0 desliga",
+                    "type": "integer",
+                    "minimum": 0
                 }
             }
         },

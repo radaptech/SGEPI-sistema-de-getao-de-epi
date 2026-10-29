@@ -49,6 +49,7 @@ function ModalNovoEpi({ onClose, onSalvar, epiParaEditar }) {
     id_tamanho: [],
     id_protecao: "",
     alerta_minimo: "",
+    vida_util_dias: "",
   });
 
   useEffect(() => {
@@ -82,6 +83,7 @@ function ModalNovoEpi({ onClose, onSalvar, epiParaEditar }) {
             id_protecao: epiParaEditar.protecao?.id || "",
             id_tamanho: epiParaEditar.tamanhos?.map((t) => t.id) || [],
             alerta_minimo: epiParaEditar.alerta_minimo || "",
+            vida_util_dias: epiParaEditar.vida_util_dias || "",
           });
         }
       } catch (erro) {
@@ -154,6 +156,9 @@ function ModalNovoEpi({ onClose, onSalvar, epiParaEditar }) {
       Number(form.alerta_minimo) < 0
     ) {
       novosErros.alerta_minimo = "O alerta mínimo não pode ser negativo.";
+    }
+    if (form.vida_util_dias !== "" && !(Number.isInteger(Number(form.vida_util_dias)) && Number(form.vida_util_dias) >= 0)) {
+      novosErros.vida_util_dias = "Informe a vida útil em dias inteiros (vazio = sem troca periódica).";
     }
 
     setErros(novosErros);
@@ -261,6 +266,7 @@ function ModalNovoEpi({ onClose, onSalvar, epiParaEditar }) {
         id_protecao: Number(form.id_protecao),
         id_tamanho: form.id_tamanho.map((id) => Number(id)),
         alerta_minimo: Number(form.alerta_minimo || 0),
+        vida_util_dias: Number(form.vida_util_dias || 0), // 0 = sem troca periódica
       };
 
       const payloadAtualizarEpi = {
@@ -272,6 +278,7 @@ function ModalNovoEpi({ onClose, onSalvar, epiParaEditar }) {
         id_protecao: Number(form.id_protecao),
         tamanhos: form.id_tamanho.map((id) => Number(id)),
         alerta_minimo: Number(form.alerta_minimo || 0),
+        vida_util_dias: Number(form.vida_util_dias || 0), // 0 = sem troca periódica
       };
 
       if (epiParaEditar) {
@@ -473,6 +480,22 @@ function ModalNovoEpi({ onClose, onSalvar, epiParaEditar }) {
                       placeholder="Ex: 10"
                     />
                     {erros.alerta_minimo && <p className="text-xs font-medium text-red-500 mt-1.5">{erros.alerta_minimo}</p>}
+                  </div>
+
+                  <div>
+                    <label className={labelClass}>
+                      Vida Útil (dias)
+                    </label>
+                    <input
+                      type="number"
+                      min="0"
+                      step="1"
+                      value={form.vida_util_dias}
+                      onChange={(e) => atualizarCampo("vida_util_dias", e.target.value)}
+                      className={`${baseInputClass} ${campoComErro("vida_util_dias")}`}
+                      placeholder="Ex: 180 (vazio = sem troca)"
+                    />
+                    {erros.vida_util_dias && <p className="text-xs font-medium text-red-500 mt-1.5">{erros.vida_util_dias}</p>}
                   </div>
 
                   <div className="md:col-span-3">
