@@ -10,11 +10,11 @@ type EpiInserir struct {
 	Fabricante     string         `json:"fabricante" binding:"required,max=100"`
 	CA             string         `json:"ca" binding:"required,max=20"`
 	Descricao      string         `json:"descricao" binding:"lte=250"`
+	VidaUtilDias   int32          `json:"vida_util_dias" binding:"gte=0"` // 0 = sem troca periódica
 	DataValidadeCa configs.DataBr `json:"data_validade_ca" binding:"required"`
 	IdTamanho      []int32        `json:"id_tamanho" binding:"required,min=1"` // Lista de tamanhos permitidos para este EPI
 	IDProtecao     int32          `json:"id_protecao" binding:"required,numeric"`
 	AlertaMinimo   int32          `json:"alerta_minimo" binding:"gte=0"`
-	VidaUtilDias   int32          `json:"vida_util_dias" binding:"gte=0"` // 0 = sem troca periódica
 }
 
 // EpiDto é o retorno completo usado na listagem de cadastros
